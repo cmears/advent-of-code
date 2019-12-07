@@ -4,7 +4,7 @@ import IntCode
 
 program = "3,99,4,99,1106,0,0"
 main = do
-  print (runProgram program [1,2,3])
+  print (runProgram program [1,2,3,4,5])
 
 
 infinite1 :: [Integer]
