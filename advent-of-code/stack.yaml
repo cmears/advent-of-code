@@ -1,0 +1,4 @@
+packages: []
+resolver: lts-14.16
+extra-deps:
+- ncurses-0.2.16
