@@ -26,6 +26,11 @@ main = do
                        Nothing -> putStrLn "no solution"
                        Just (x,y) -> print (x,y,x*y)
 
+  -- Find 2 that sum to target, faster way.
+  measure "2 faster" $ case faster2 target xs of
+                       Nothing -> putStrLn "no solution"
+                       Just (x,y) -> print (x,y,x*y)
+
   -- Find 3 that sum to target, fast way.
   measure "3 fast" $ case fast3 target xs of
                        Nothing -> putStrLn "no solution"
@@ -45,6 +50,14 @@ fast2 t xs0 =
     let xs1 = sort xs0
         ys1 = reverse xs1
     in loop t xs1 ys1
+
+-- Assumes no duplicates.
+faster2 :: Integer -> [Integer] -> Maybe (Integer, Integer)
+faster2 t0 xs0 =
+  let xs = map fromInteger xs0
+      a = accumArray (||) False (0, maximum xs) [ (x, True) | x <- xs ] :: UArray Int Bool
+      t = fromInteger t0
+  in (\x -> (toInteger x, toInteger (t-x))) <$> find (\x -> a!(t-x)) xs
 
 -- Assumes no duplicates.
 fast3 :: Integer -> [Integer] -> Maybe (Integer, Integer, Integer)
