@@ -1,4 +1,5 @@
 import Control.Monad
+import Data.Foldable
 import qualified Data.Set as S
 import Data.Void
 import Text.Megaparsec
@@ -74,7 +75,7 @@ height = try heightCM <|> heightIN
 hairColor = char '#' >> replicateM 6 hexDigitChar
 
 -- Parse eye colours.
-eyeColor = foldl1 (<|>) (map string (words "amb blu brn gry grn hzl oth"))
+eyeColor = asum . map string . words $ "amb blu brn gry grn hzl oth"
 
 -- Parse passport IDs (9 digits).
 passportID = replicateM 9 digitChar
