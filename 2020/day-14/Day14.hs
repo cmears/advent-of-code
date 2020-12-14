@@ -1,8 +1,16 @@
+{-# LANGUAGE ViewPatterns #-}
 -- See the history of this file to find the version in the Youtube video.
 
 import Data.Char
 import Data.List.Split
 import qualified Data.Map as M
+import Text.Regex.TDFA
+
+submatches :: String -> String -> Maybe [String]
+submatches regex s =
+  case getAllTextSubmatches (s =~ regex) of
+    [] -> Nothing
+    matches -> Just (tail matches)
 
 main = do
   program <- map parseLine . lines <$> readFile "input.txt"
@@ -14,13 +22,8 @@ data Instruction = Mask String | Write Int Int
   deriving (Show)
 
 parseLine :: String -> Instruction
-parseLine line =
-  if take 4 line == "mask"
-  then Mask (drop 7 line)
-  else let a = read (takeWhile isDigit (drop 4 line))
-           [_,r] = splitOn "=" line
-           v = read (tail r)
-       in Write a v
+parseLine (submatches "mask = (.*)" -> Just [m]) = Mask m
+parseLine (submatches "mem\\[(.*)\\] = (.*)" -> Just [a,v]) = Write (read a) (read v)
 
 runProgram :: W -> [Instruction] -> E -> E
 runProgram writer instructions e = foldl (flip (execute writer)) e instructions
