@@ -1,21 +1,16 @@
+-- See the history of this file to find the version in the Youtube video.
+
 import Data.Char
 import Data.List.Split
 import qualified Data.Map as M
 
 main = do
   program <- map parseLine . lines <$> readFile "input.txt"
---  mapM_ print program
-  let (mem, _) = runProgram program (M.empty, replicate 36 '0')
---  print mem
-  print . sum . M.elems $ mem
+  let go w = print . sum . M.elems . fst $ runProgram w program (M.empty, replicate 36 '0')
+  go part1Writer
+  go part2Writer
 
-  -- flip mapM_ program $ \i -> 
-  --   case i of
-  --     Mask m -> print $ length (filter (=='X') m)
-  --     _ -> pure ()
-
-data Instruction = Mask String
-                 | Write Int Int
+data Instruction = Mask String | Write Int Int
   deriving (Show)
 
 parseLine :: String -> Instruction
@@ -27,23 +22,30 @@ parseLine line =
            v = read (tail r)
        in Write a v
 
-runProgram :: [Instruction] -> E -> E
-runProgram instructions e = foldl (flip execute) e instructions
+runProgram :: W -> [Instruction] -> E -> E
+runProgram writer instructions e = foldl (flip (execute writer)) e instructions
   
 type E = (M.Map Int Int, String)
+type W = Int -> Int -> String -> [(Int, Int)]
 
-execute :: Instruction -> E -> E
-execute (Mask s) (mem,_) = (mem,s)
-execute (Write a v) (mem,mask) =
-    let addresses = compute a mask
-        mem' = foldr (\a' -> M.insert a' v) mem addresses
-    in (mem', mask)
+execute :: W -> Instruction -> E -> E
+execute _ (Mask s) (mem,_) = (mem,s)
+execute writer (Write a v) (mem,mask) = 
+    (M.union (M.fromList (writer a v mask)) mem, mask)
 
-compute :: Int -> String -> [Int]
-compute n mask =
-    let s = int2String n
-        s2 = zipWith f mask s
-    in string2IntFloat s2
+part1Writer a v m = [(a, compute1 v m)]
+
+part2Writer a v m = [(a', v) | a' <- compute2 a m]
+
+compute1 :: Int -> String -> Int
+compute1 n mask = string2Int . zipWith f mask . int2String $ n
+  where
+    f 'X' d = d
+    f '1' _ = '1'
+    f '0' _ = '0'
+
+compute2 :: Int -> String -> [Int]
+compute2 n mask = string2IntFloat . zipWith f mask . int2String $ n
   where
     f 'X' _ = 'X'
     f '1' _ = '1'
