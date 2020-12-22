@@ -23,21 +23,17 @@ go (x:xs) (y:ys) | x > y = go (xs ++ [x,y]) ys
 
 type Config = ([Int],[Int])
 type GameMemory = S.Set Config
-type GlobalMemory = M.Map Config Int
-type S = (GameMemory, GlobalMemory)
-type St = StateT S IO
+type St = StateT GameMemory IO
 
 logEnabled = False
 
 -- Evaluate a game/round of recursive combat.
 -- Positive score if player 1 won, negative score if player 2 won.
 -- "depth" is the depth of recursion for nicer output.
--- The state is the pair (game,global), recording the "game" memory and the "global" memory.
 -- The game memory records which configurations we have seen in *this* game (for the infinite-avoidance rule).
--- The global memory is a cache of "config -> score" records for subgames.
 go2 :: Int -> Config -> St Int
 go2 depth (xs,ys) = do
-  (game,global) <- get
+  game <- get
   case (xs,ys) of
     -- Player 1 wins.
     (_,[]) -> pure $ score xs
@@ -53,52 +49,23 @@ go2 depth (xs,ys) = do
         if length xs' >= x && length ys' >= y
         then do let subconfig = (take x xs', take y ys')
                 log $ "recursive: " ++ show subconfig
-                -- Check the cache to see if we've already played this subgame.
-                case M.lookup subconfig global of
-                  -- If so, inspect the recorded score and return who won.
-                  Just cached -> do log "retrieved from cache"
-                                    pure (cached > 0)
-                  -- Otherwise...
-                  Nothing -> do
-                    -- Play the subconfig a "fresh" game, with an empty "game" memory.
-                    s <- fresh $ go2 (depth+2) subconfig
-                    -- Record the result in the global cache.
-                    record subconfig s
-                    -- Return the score.
-                    pure (s > 0)
+                -- Play the subconfig a "fresh" game, with an empty "game" memory.
+                s <- liftIO $ evalStateT (go2 (depth+2) subconfig) S.empty
+                -- Return the score.
+                pure (s > 0)
         -- If not enough cards to recurse, just compare the first two cards.
         else pure (x > y)
       -- Collect the cards and move to the next round.
+      modify $ S.insert (xs,ys)
       if p1wins
-        then nextRound ((xs'++[x,y]), ys')
-        else nextRound (xs', (ys'++[y,x]))
+        then go2 depth ((xs'++[x,y]), ys')
+        else go2 depth (xs', (ys'++[y,x]))
       
   where
-    -- Move to the next round, updating the "game" memory.
-    nextRound :: Config -> St Int
-    nextRound c = do
-      modify (\(game,global) -> (S.insert (xs,ys) game, global))
-      go2 depth c
-    -- Record the subgame result in the global cache.
-    record :: Config -> Int -> St ()
-    record c subscore = do
-      modify (\(game,global) -> (game, M.insert c subscore global))
-      log $ "recorded:  " ++ show c ++ " ==> " ++ show subscore
-    -- Run an action with a "fresh" game memory (but maintaining the global subgame cache).
-    fresh :: St a -> St a
-    fresh action = do
-      (game,global) <- get
-      -- Run the action *with its own state* (start with empty game
-      -- state) and collect the result and the updated global cache.
-      (a,(_,global')) <- liftIO $ runStateT action (S.empty, global)
-      -- Update our global cache.
-      put (game, global')
-      -- Return the result.
-      pure a
     align = putStr (replicate depth ' ')
     log s | logEnabled = liftIO $ align >> putStrLn s
           | otherwise = pure ()
 
 main = do
   print $ go p1 p2
-  print =<< evalStateT (go2 0 (p1,p2)) (S.empty, M.empty)
+  print =<< evalStateT (go2 0 (p1,p2)) S.empty
