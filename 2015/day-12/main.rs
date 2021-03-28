@@ -1,52 +1,42 @@
-// Add all numbers in a JsonValue.
-fn sum_numbers(v: &json::JsonValue, total: &mut i64) {
-    match v {
-        json::JsonValue::Number(_) => *total += v.as_i64().unwrap(),
-        json::JsonValue::Object(_) => {
-            for (_,v2) in v.entries() {
-                sum_numbers(v2, total)
-            }
-        },
-        json::JsonValue::Array(_) => {
-            for v2 in v.members() {
-                sum_numbers(v2, total)
-            }
-        },
-        _ => {}
+fn sum_numbers_except<T>(ignore: &T, v: &json::JsonValue, total: &mut i64)
+    where T: Fn(&json::JsonValue) -> bool {
+    if !ignore(v) {
+        match v {
+            json::JsonValue::Number(_) => *total += v.as_i64().unwrap(),
+            json::JsonValue::Object(_) => {
+                for (_,v2) in v.entries() {
+                    sum_numbers_except(ignore, v2, total)
+                }
+            },
+            json::JsonValue::Array(_) => {
+                for v2 in v.members() {
+                    sum_numbers_except(ignore, v2, total)
+                }
+            },
+            _ => {}
+        }
     }
 }
 
-// Add all numbers in a JsonValue, but not red objects.
-fn sum_numbers_not_red(v: &json::JsonValue, total: &mut i64) {
-    match v {
-        json::JsonValue::Number(_) => *total += v.as_i64().unwrap(),
-        json::JsonValue::Object(_) => {
-            for (_,v2) in v.entries() {
-                if v2.as_str() == Some("red") {
-                    return
-                }
+fn is_red(v: &json::JsonValue) -> bool {
+    if let json::JsonValue::Object(_) = v {
+        for (_,v2) in v.entries() {
+            if v2.as_str() == Some("red") {
+                return true
             }
-            for (_,v2) in v.entries() {
-                sum_numbers_not_red(v2, total)
-            }
-        },
-        json::JsonValue::Array(_) => {
-            for v2 in v.members() {
-                sum_numbers_not_red(v2, total)
-            }
-        },
-        _ => {}
+        }
     }
+    false
 }
 
 fn main() {
     let contents = std::fs::read_to_string("input.txt").unwrap();
     let v = json::parse(&contents).unwrap();
     let mut x = 0;
-    sum_numbers(&v, &mut x);
+    sum_numbers_except(&|_| false, &v, &mut x);
     println!("{}", x);
 
     let mut x = 0;
-    sum_numbers_not_red(&v, &mut x);
+    sum_numbers_except(&is_red, &v, &mut x);
     println!("{}", x);
 }
