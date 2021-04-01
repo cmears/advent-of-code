@@ -49,3 +49,6 @@ path = "day-18/main.rs"
 [[bin]]
 name = "day-19"
 path = "day-19/main.rs"
+[[bin]]
+name = "day-20"
+path = "day-20/main.rs"
