@@ -26,7 +26,7 @@ public class AStar {
     // We've seen these nodes before, with the given costs.
     HashMap<Object, Integer> seen;
 
-    AStar(Node initial) {
+    public AStar(Node initial) {
         queue = new PriorityQueue<>(Comparator.<Node>comparingInt(n -> n.cost() + n.heuristic()));
         queue.add(initial);
         best = null;
@@ -56,9 +56,11 @@ public class AStar {
         }
     }
 
-    Node search() {
+    public Node search() {
         while (!queue.isEmpty())
             step();
         return best;
     }
+
+    public int seenSize() { return seen.size(); }
 }
