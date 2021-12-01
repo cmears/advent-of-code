@@ -10,7 +10,7 @@ public class Day20 {
     record Range(long l, long u) {}
     public static void main(String[] args) {
         try {
-            List<String> lines = Files.readAllLines(Paths.get("input-20.txt"));
+            List<String> lines = Files.readAllLines(Paths.get("2016/input-20.txt"));
             List<Range> ranges = lines.stream().map(s -> {
                 String[] parts = s.split("-");
                 return new Range(Long.parseLong(parts[0]), Long.parseLong(parts[1]));
