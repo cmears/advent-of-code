@@ -39,28 +39,23 @@ computeNaps [] = []
 computeNaps (((_,_,_,_,m1),Sleep):((_,_,_,_,m2),Awake):rs) =
     (m1,m2):computeNaps rs
 
-computeTotalSnooze = sum . map (\(x,y) -> y-x)
-
-findSleepiestMinute :: [(Integer, Integer)] -> Integer
-findSleepiestMinute pairs = fst $ maximumBy (comparing snd) $ count $ concat [ [x..y-1] | (x,y) <- pairs ]
-
-computeTriples (g, pairs) =
-    let cs = count $ concat [ [x..y-1] | (x,y) <- pairs ]
-    in map (\(m,c) -> (g,m,c)) cs
-
+computePairs :: (Integer, [(Integer, Integer)]) -> [(Integer, Integer)]
+computePairs (g, pairs) = map (\m -> (g,m)) (concat [ [x..y-1] | (x,y) <- pairs ])
 
 main = do
   records <- sort . map parseLine . lines <$> readFile "4.txt"
   let naps = map (\(i,rs) -> (i, computeNaps rs)) $ groupByShift records
-  let guards = map (\g -> (fst (head g), concat (map snd g))) $ groupBy ((==) `on` fst) (sort naps)
+  let triples = map (\((a,b),c) -> (a,b,c)) $ count $ concatMap computePairs $ sort naps
 
-  let sleepiestGuard = maximumBy (comparing (computeTotalSnooze . snd)) guards
-  let guardId = fst sleepiestGuard
-  let sleepiestMinute = findSleepiestMinute (snd sleepiestGuard)
-  print $ guardId * sleepiestMinute
-
-  let triples = concatMap computeTriples guards
---  print triples
+  -- Now triples is a list of (guard, minute, count).
+  let aggregatedByGuard = groupBy ((==) `on` (\(a,b,c) -> a)) $ triples
+  let sleepiestGuard = maximumBy (comparing (sum . map third3)) $ aggregatedByGuard
+  let sleepiestMinute = maximumBy (comparing third3) sleepiestGuard
+  print $ fst3 (head sleepiestGuard) * snd3 sleepiestMinute
 
   let (g,m,c) = maximumBy (comparing (\(a,b,c) -> c)) triples
   print $ g*m
+
+fst3 (a,b,c) = a
+snd3 (a,b,c) = b
+third3 (a,b,c) = c
