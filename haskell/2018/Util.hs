@@ -22,3 +22,8 @@ count' xs = map (\g -> (head g, length g)) $ group xs
 
 count :: (Eq a, Ord a) => [a] -> [(a, Int)]
 count = count' . sort
+
+primes :: [Integer]
+primes = f (2:[3,5..])
+  where f (x:xs) = x : f (filter (\y -> y `mod` x /= 0) xs)
+        f _ = error "unreachable"
