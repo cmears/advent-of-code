@@ -1,12 +1,16 @@
+import Data.Char
+import Data.List
+import Data.List.Split
 import qualified Data.Map as M
 
-initS = M.fromList [ (1, "JFCNDBW"), (2, "TSLQVZP"), (3, "TJGBZP"), (4, "CHBZJLTD"), (5, "SJBVG"), (6, "QSP"), (7, "NPMLFDVB"), (8, "RLDBFMSP"), (9, "RTDV") ]
-parseLine l = let [_,n,_,f,_,t] = words l in (read n, read f, read t)
+parseCommand l = let [_,n,_,f,_,t] = words l in (read n, read f, read t)
+parseInput c = ( M.fromList . zip [1..] . map (filter isAlpha . concat) . transpose . map (chunksOf 4) . init $ state
+               , map parseCommand commands )
+  where [state, commands] = splitOn [""] (lines c)
 
-execute :: M.Map Int String -> (Int,Int,Int) -> M.Map Int String
 execute m (n,f,t) = let (xs,ys) = splitAt n (m M.! f) in M.insert f ys . M.update (Just . (xs++)) t $ m
 
 main = do
-  commands <- map parseLine . lines <$> readFile "5.txt"
+  (initS, commands) <- parseInput <$> readFile "5.txt"
   let go = print . map head . M.elems . foldl execute initS
   go (concatMap (\(n,f,t) -> replicate n (1,f,t)) commands) >> go commands
