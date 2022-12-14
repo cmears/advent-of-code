@@ -1,54 +1,20 @@
-import Data.List
-import Data.List.Split
 import qualified Data.Set as S
-import Debug.Trace
 
-type Coord = (Int,Int)
-
-readPaths :: String -> [(Coord)]
-readPaths s = map (\w -> (\[a,b] -> (a,b)) $ map (read :: String -> Int) (splitOn "," w)) $ filter (\w -> w /= "->") $ words s
-
-expand (x1,y1) (x2,y2) | x1 == x2 = [(x1,y) | y <- [min y1 y2 .. max y1 y2] ]
-expand (x1,y1) (x2,y2) | y1 == y2 = [(x,y1) | x <- [min x1 x2 .. max x1 x2] ]
+readPaths = map (\s -> read ("("++s++")")) . filter (/= "->") . words
 
 expandPath p = zipWith expand p (tail p)
+expand (x1,y1) (x2,y2) | x1 == x2 = [ (x1,y) | y <- [min y1 y2 .. max y1 y2] ]
+                       | y1 == y2 = [ (x,y1) | x <- [min x1 x2 .. max x1 x2] ]
 
-isWall walls floor coord | coord `S.member` walls = True
-                         | snd coord == floor = True
-                         | otherwise = False
+fallPath walls floor ((x,y):path) | c' == (x,y) = (x,y):path
+                                  | otherwise = fallPath walls floor (c':(x,y):path)
+  where (c':_) = filter (not . (\c -> (c `S.member` walls || snd c == floor))) [(x,y+1),(x-1,y+1),(x+1,y+1),(x,y)]
 
---fallStep :: Coord -> S.Set Coord -> Coord
-fallStep (x,y) walls floor =
-    if not (isWall walls floor (x,y+1))
-    then (x,y+1)
-    else if not (isWall walls floor (x-1,y+1))
-         then (x-1,y+1)
-         else if not (isWall walls floor (x+1,y+1))
-              then (x+1,y+1)
-              else (x,y)
-
-fall :: Coord -> S.Set Coord -> Int -> Maybe (S.Set Coord)
---fall coord walls floor | trace ("FALL  " ++ show (coord, walls, floor)) False = undefined
-fall coord walls floor =
-    let c' = fallStep coord walls floor
-    in if c' == (500,0)
-       then Nothing
-       else if coord == c'
-            then Just (S.insert coord walls)
-            else fall c' walls floor
-
-loop walls floor =
-    case fall (500,0) walls floor of
-      Just walls' -> loop walls' floor
-      Nothing -> walls
-
+restPoints _ _ [] = []
+restPoints walls floor prevPath = c : restPoints (S.insert c walls) floor p
+  where (c:p) = fallPath walls floor prevPath
 
 main = do
-  paths <- map readPaths . lines <$> readFile "14.txt"
-  let points = S.fromList $ concat $ concatMap expandPath paths
---  print points
-  let floor = maximum (map snd (S.toList points)) + 2
-  let final = loop points floor
---  print final
-  print $ S.size final - S.size points + 1
-
+  walls <- S.fromList . concat . concatMap (expandPath . readPaths) . lines <$> readFile "14.txt"
+  let floor = 2 + S.findMax (S.map snd walls)
+  mapM_ (\f -> (print . length . f) (restPoints walls floor [(500,0)])) [takeWhile ((<floor-1) . snd), id]
