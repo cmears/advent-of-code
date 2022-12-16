@@ -14,6 +14,7 @@ type Path = [(Valve, Int)]
 parseLine :: String -> (Valve, (Int, [Valve]))
 parseLine (submatches "Valve (.*) has flow rate=(.*); tunnels? leads? to valves? (.*)" -> Just [v,r,vs]) =
     (v, (read r, splitOn ", " vs))
+parseLine x = error x
 
 -- Breadth-first traversal.
 -- Given an origin node and a neighbour function, gives the list of
@@ -29,6 +30,7 @@ bfs origin neighbours = bfs' (Seq.singleton (origin, 0)) S.empty
                                         seen' = S.insert x seen
                                     in (x,d) : bfs' q' seen'
 
+main :: IO ()
 main = do
   ls <- lines <$> readFile "16.txt"
 
@@ -56,9 +58,9 @@ main = do
   let distance :: M.Map (Valve, Valve) Int
       distance = M.fromList $ do
                    origin <- "AA":positiveValves
-                   (destination, distance) <- bfs origin (\n -> snd (input M.! n))
-                   guard (destination `elem` positiveValves)
-                   pure ((origin, destination), distance)
+                   (dest, dist) <- bfs origin (\n -> snd (input M.! n))
+                   guard (dest `elem` positiveValves)
+                   pure ((origin, dest), dist)
 
   -- Now instead of thinking about moving from room to room, we can
   -- think about "which valves do I open, and in what order?"  We call
@@ -120,12 +122,12 @@ main = do
                   -- candidate partner's score is too low to beat the
                   -- incumbent best score.
                   let threshold = bestSoFar - score
-                      partners = takeWhile (\(set',score') -> score' > threshold) setsOrdered
+                      partners = takeWhile (\(_set',score') -> score' > threshold) setsOrdered
                       -- The new best is either the incumbent or is
                       -- replaced by this set and its partner.
-                      bestSoFar' = case find (\(set',score') -> S.null (S.intersection set set')) partners of
+                      bestSoFar' = case find (\(set',_score') -> S.null (S.intersection set set')) partners of
                                      Nothing -> bestSoFar
-                                     Just (set',score') -> score + score'
+                                     Just (_set',score') -> score + score'
                   in loop rest bestSoFar'
 
   print bestScore
