@@ -5,7 +5,7 @@ import Data.Map (Map)
 import Data.Maybe
 
 main = do
-  ls <- lines <$> readFile "3ex.txt"
+  ls <- lines <$> readFile "3.txt"
   let pairs = [ ((r,c),x) | (r,l) <- zip [0..] ls, (c,x) <- zip [0..] l ]
   let m = M.fromList pairs
 
@@ -17,11 +17,7 @@ main = do
   print $ sum $ map snd $ filter (\(coord,x) -> any hasSymbol (neighbours coord m)) numbers
 
   print $ sum $ do coord <- M.keys (M.filter (=='*') m)
-                   let adjacentNumbers = do
-                         (ncoord,x) <- numbers
-                         guard (any (==coord) (neighbours ncoord m))
-                         pure x
-                   case adjacentNumbers of
+                   case [ x | (ncoord,x) <- numbers, any (==coord) (neighbours ncoord m) ] of
                      [a,b] -> pure (a*b)
                      _ -> mzero
 
@@ -34,8 +30,4 @@ number (r,c) m =
 neighbours (r,c) m =
     case number (r,c) m of
       Nothing -> []
-      Just x ->
-          let n = length x
-              cs = [c-1 .. c+n]
-              rs = [r-1, r, r+1]
-          in (,) <$> rs <*> cs
+      Just x -> (,) <$> [r-1, r, r+1] <*> [c-1 .. c+length x]
