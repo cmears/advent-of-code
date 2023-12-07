@@ -1,3 +1,4 @@
 *.hi
 *.o
-haskell/2018/.stack-work/
+haskell/*/.stack-work/
+*~
