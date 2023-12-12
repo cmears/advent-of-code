@@ -1,13 +1,16 @@
 import Control.Monad
+import Control.Monad.State
 import Data.List
 import Data.List.Split
+import qualified Data.Map as M
 
 main = do
   ls <- lines <$> readFile "12.txt"
   let pairs = map parseLine ls
-  let ws = map (ways3 . expand) pairs
+--  let ws = map (ways4 . expand) pairs
+  let ws = evalState (mapM (ways4 . expand) pairs) M.empty
 --  let bs = map (\p -> ways2 p == ways3 p) pairs
-  mapM_ print (zip pairs ws)
+--  mapM_ print (zip pairs ws)
   print $ sum ws
   pure ()
 
@@ -77,3 +80,31 @@ divide j middle s =
     in if all nondot intra && (null pre || nonhash (last pre)) && (null post || nonhash (head post))
        then Just (if null pre then pre else init pre, intra, if null post then post else tail post)
        else Nothing
+
+type S = State (M.Map (String, [Int]) Int)
+ways4 :: (String, [Int]) -> S Int
+ways4 pair = do
+  m <- get
+  case M.lookup pair m of
+    Just x -> pure x
+    Nothing -> do x <- ways4' pair
+                  modify (M.insert pair x)
+                  pure x
+
+ways4' :: (String, [Int]) -> S Int
+ways4' (s,[]) = pure $ if all nonhash s then 1 else 0
+ways4' (s,xs) =
+    let (before,middle,after) = knife xs
+        n = length s
+        minbefore = sum before + length before
+        minafter = sum after + length after
+        slack = n - (minbefore + minafter + middle)
+        range = [minbefore .. minbefore+slack]
+        f j = case divide j middle s of
+                Nothing -> pure 0
+                Just (pre,intra,post) -> do
+                                       x <- ways4 (pre,before)
+                                       y <- ways4 (post,after)
+                                       pure (x*y)
+    in do parts <- mapM f range
+          pure (sum parts)
