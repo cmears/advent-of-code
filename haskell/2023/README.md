@@ -2,4 +2,7 @@
   regex-tdfa
   split
   trifecta
+  svb
+  fgl
+  random-shuffle
   
